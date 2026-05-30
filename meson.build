@@ -425,7 +425,8 @@ main_fn_source = []
 if emscripten
     path_source = files('osdep/path-emscripten.c')
     timer_source = files('osdep/timer-emscripten.c')
-    sources += files('osdep/language-posix.c',
+    sources += files('audio/out/ao_emscripten.c',
+                     'osdep/language-posix.c',
                      'sub/filter_regex.c')
 endif
 

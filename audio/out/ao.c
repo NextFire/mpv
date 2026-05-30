@@ -55,9 +55,13 @@ extern const struct ao_driver audio_out_pcm;
 extern const struct ao_driver audio_out_lavc;
 extern const struct ao_driver audio_out_sdl;
 extern const struct ao_driver audio_out_aaudio;
+extern const struct ao_driver audio_out_emscripten;
 
 static const struct ao_driver * const audio_out_drivers[] = {
 // native:
+#if HAVE_EMSCRIPTEN
+    &audio_out_emscripten,
+#endif
 #if HAVE_AUDIOTRACK
     &audio_out_audiotrack,
 #endif
