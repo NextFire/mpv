@@ -613,6 +613,9 @@ mpv_handle *mpv_create(void)
         return NULL;
 
     m_config_set_profile(mpctx->mconfig, "libmpv", 0);
+#if HAVE_EMSCRIPTEN
+    m_config_set_profile(mpctx->mconfig, "emscripten", 0);
+#endif
 
     mpv_handle *ctx = mp_new_client(mpctx->clients, "main");
     if (!ctx) {

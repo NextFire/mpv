@@ -20,6 +20,7 @@
 #include <errno.h>
 #include <pthread.h>
 #include <stdio.h>
+#include <time.h>
 
 #include "common/common.h"
 #include "config.h"

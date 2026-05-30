@@ -312,11 +312,13 @@ if cc.get_id() == 'gcc'
     flags +='-Wno-unused-result'
 endif
 
-darwin = host_machine.system() == 'darwin'
-win32 = host_machine.system() == 'cygwin' or host_machine.system() == 'windows'
-posix = not win32
+emscripten = get_option('emscripten') or host_machine.system() == 'emscripten'
+darwin = host_machine.system() == 'darwin' and not emscripten
+win32 = (host_machine.system() == 'cygwin' or host_machine.system() == 'windows') and not emscripten
+posix = not win32 and not emscripten
 
 features += {'darwin': darwin}
+features += {'emscripten': emscripten}
 features += {'posix': posix}
 features += {'dos-paths': win32, 'win32': win32}
 
@@ -335,7 +337,7 @@ if host_machine.system() == 'cygwin'
     flags += [mswin_flags, '-mwin32']
 endif
 
-if posix
+if posix or emscripten
     flags += ['-D_GNU_SOURCE']
 endif
 
@@ -402,7 +404,31 @@ add_project_arguments(flags_c, language: ['c', 'objc'])
 add_project_link_arguments(link_flags, language: ['c', 'cpp', 'objc'])
 
 
+if emscripten
+    if get_option('cplayer')
+        error('emscripten builds require -Dcplayer=false')
+    endif
+    if not get_option('libmpv')
+        error('emscripten builds require -Dlibmpv=true')
+    endif
+    if get_option('default_library') == 'shared'
+        error('emscripten builds require default_library=static')
+    endif
+endif
+
+path_source = []
+timer_source = []
+main_fn_source = []
+
+
 # osdep
+if emscripten
+    path_source = files('osdep/path-emscripten.c')
+    timer_source = files('osdep/timer-emscripten.c')
+    sources += files('osdep/language-posix.c',
+                     'sub/filter_regex.c')
+endif
+
 if darwin
     path_source = files('osdep/path-darwin.c')
     timer_source = files('osdep/timer-darwin.c')
@@ -410,7 +436,7 @@ endif
 
 cocoa = dependency('appleframeworks', modules: ['Cocoa', 'IOKit', 'QuartzCore'],
                    required: get_option('cocoa'))
-features += {'cocoa': cocoa.found()}
+features += {'cocoa': not emscripten and cocoa.found()}
 if features['cocoa']
     dependencies += cocoa
     path_source += files('osdep/path-mac.m')
@@ -809,7 +835,7 @@ audiounit = {
     'symbol': cc.has_header_symbol('AudioToolbox/AudioToolbox.h', 'kAudioUnitSubType_RemoteIO',
                                    required: audiounit_opt),
 }
-features += {'audiounit': audiounit['deps'].found() and audiounit['symbol']}
+features += {'audiounit': not emscripten and audiounit['deps'].found() and audiounit['symbol']}
 if features['audiounit']
     dependencies += audiounit['deps']
     sources += files('audio/out/ao_audiounit.m')
@@ -817,7 +843,7 @@ endif
 
 avfoundation = dependency('appleframeworks', modules: ['CoreMedia', 'AVFoundation'],
                           required: get_option('avfoundation'))
-features += {'avfoundation': avfoundation.found()}
+features += {'avfoundation': not emscripten and avfoundation.found()}
 if features['avfoundation']
     dependencies += avfoundation
     sources += files('audio/out/ao_avfoundation.m')
@@ -825,7 +851,7 @@ endif
 
 coreaudio = dependency('appleframeworks', modules: ['CoreFoundation', 'CoreAudio',
                        'AudioUnit', 'AudioToolbox'], required: get_option('coreaudio'))
-features += {'coreaudio': coreaudio.found()}
+features += {'coreaudio': not emscripten and coreaudio.found()}
 if features['coreaudio']
     dependencies += coreaudio
     sources += files('audio/out/ao_coreaudio.c',
@@ -956,7 +982,7 @@ endif
 
 drm = dependency('libdrm', version: '>= 2.4.105', required: get_option('drm'))
 libdisplay_info = dependency('libdisplay-info', version: '>= 0.1.1', required: get_option('drm'))
-features += {'drm': drm.found() and libdisplay_info.found() and
+features += {'drm': not emscripten and drm.found() and libdisplay_info.found() and
              (features['vt.h'] or features['consio.h'] or features['wsdisplay-usl-io.h'])}
 if features['drm']
     dependencies += [drm, libdisplay_info]
@@ -1049,7 +1075,7 @@ foreach dep: wayland['deps']
         break
     endif
 endforeach
-features += {'wayland': wayland_deps and wayland['header'] and wayland['scanner'].found()}
+features += {'wayland': not emscripten and wayland_deps and wayland['header'] and wayland['scanner'].found()}
 
 if features['wayland']
     subdir(join_paths('video', 'out'))
@@ -1098,7 +1124,7 @@ foreach dep: x11['deps']
         break
     endif
 endforeach
-features += {'x11': x11_deps}
+features += {'x11': not emscripten and x11_deps}
 
 if features['x11']
     dependencies += x11['deps']

@@ -24,6 +24,7 @@ typedef const char *(*mp_get_platform_path_cb)(void *talloc_ctx, const char *typ
 
 // Conforming to mp_get_platform_path_cb.
 const char *mp_get_platform_path_darwin(void *talloc_ctx, const char *type);
+const char *mp_get_platform_path_emscripten(void *talloc_ctx, const char *type);
 const char *mp_get_platform_path_uwp(void *talloc_ctx, const char *type);
 const char *mp_get_platform_path_win(void *talloc_ctx, const char *type);
 const char *mp_get_platform_path_mac(void *talloc_ctx, const char *type);

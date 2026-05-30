@@ -2,6 +2,7 @@
 option('gpl', type: 'boolean', value: true, description: 'GPL (version 2 or later) build')
 option('cplayer', type: 'boolean', value: true, description: 'mpv CLI player')
 option('libmpv', type: 'boolean', value: true, description: 'libmpv library')
+option('emscripten', type: 'boolean', value: false, description: 'Emscripten/WebAssembly browser target')
 option('build-date', type: 'boolean', value: true, description: 'include compile timestamp in binary')
 option('tests', type: 'boolean', value: false, description: 'meson unit tests')
 option('fuzzers', type: 'boolean', value: false, description: 'fuzzer binaries')
