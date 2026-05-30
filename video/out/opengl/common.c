@@ -527,14 +527,21 @@ void mpgl_load_functions2(GL *gl, void *(*get_fn)(void *ctx, const char *n),
     }
 
     int major = 0, minor = 0;
+    bool is_webgl = false;
     const char *version_string = gl->GetString(GL_VERSION);
+    const char *full_version_string = version_string;
     if (!version_string) {
         mp_fatal(log, "glGetString(GL_VERSION) returned NULL.\n");
         goto error;
     }
     mp_verbose(log, "GL_VERSION='%s'\n",  version_string);
+    if (strstr(full_version_string, "WebGL "))
+        is_webgl = true;
     if (strncmp(version_string, "OpenGL ES ", 10) == 0) {
         version_string += 10;
+        gl->es = 100;
+    } else if (strncmp(version_string, "WebGL ", 6) == 0) {
+        version_string += 6;
         gl->es = 100;
     }
     if (sscanf(version_string, "%d.%d", &major, &minor) < 2)
@@ -544,7 +551,13 @@ void mpgl_load_functions2(GL *gl, void *(*get_fn)(void *ctx, const char *n),
                major, minor);
 
     if (gl->es) {
-        gl->es = gl->version;
+        if (is_webgl) {
+            // WebGL versions map to GLES feature levels rather than directly
+            // matching the reported WebGL version string.
+            gl->es = major >= 2 ? 300 : 200;
+        } else {
+            gl->es = gl->version;
+        }
         gl->version = 0;
         if (gl->es < 200) {
             mp_fatal(log, "At least GLESv2 required.\n");
@@ -613,7 +626,12 @@ void mpgl_load_functions2(GL *gl, void *(*get_fn)(void *ctx, const char *n),
             const struct gl_function *fn = &fnlist[i];
             void *ptr = get_fn(fn_ctx, fn->name);
             if (!ptr) {
-                all_loaded = false;
+                bool optional_webgl_fn = is_webgl &&
+                    (!strcmp(fn->name, "glMapBufferRange") ||
+                     !strcmp(fn->name, "glUnmapBuffer"));
+                all_loaded = optional_webgl_fn;
+                if (optional_webgl_fn)
+                    continue;
                 if (must_exist) {
                     mp_err(log, "GL %d.%d function %s not found.\n",
                            MPGL_VER_GET_MAJOR(ver_core),

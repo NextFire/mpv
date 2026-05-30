@@ -6,6 +6,15 @@
 
 static const struct ra_fns ra_fns_gl;
 
+static bool gl_is_webgl(GL *gl)
+{
+    if (!gl->es || !gl->GetString)
+        return false;
+
+    const char *version = (const char *)gl->GetString(GL_VERSION);
+    return version && strstr(version, "WebGL ");
+}
+
 // For ra.priv
 struct ra_gl {
     GL *gl;
@@ -834,10 +843,11 @@ static GLuint load_program(struct ra *ra, const struct ra_renderpass_params *p,
                            bstr *out_cached_data)
 {
     GL *gl = ra_gl_get(ra);
+    bool is_webgl = gl_is_webgl(gl);
 
     GLuint prog = 0;
 
-    if (gl->ProgramBinary && p->cached_program.len > 4) {
+    if (!is_webgl && gl->ProgramBinary && p->cached_program.len > 4) {
         GLenum format = AV_RL32(p->cached_program.start);
         prog = gl->CreateProgram();
         gl_check_error(gl, ra->log, "before loading program");
@@ -857,7 +867,7 @@ static GLuint load_program(struct ra *ra, const struct ra_renderpass_params *p,
     if (!prog) {
         prog = compile_program(ra, p);
 
-        if (gl->GetProgramBinary && prog) {
+        if (!is_webgl && gl->GetProgramBinary && prog) {
             GLint size = 0;
             gl->GetProgramiv(prog, GL_PROGRAM_BINARY_LENGTH, &size);
             uint8_t *buffer = talloc_size(NULL, size + 4);
