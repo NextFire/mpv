@@ -150,6 +150,14 @@ statically linked against those.
 
 If you want to build a Windows binary, see [Windows compilation][windows_compilation].
 
+### WASM
+
+```sh
+./ci/build-emscripten-deps.sh
+./ci/build-emscripten.sh build-emscripten-wasm
+meson compile -C build-emscripten-wasm emscripten-browser
+meson compile -C build-emscripten-wasm serve-emscripten-browser
+```
 
 ## Release cycle
 
