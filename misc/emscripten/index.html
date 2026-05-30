@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>mpv browser MVP</title>
+    <style>
+        :root {
+            --bg: #f3efe4;
+            --panel: rgba(255, 250, 240, 0.8);
+            --ink: #1f2a2e;
+            --muted: #5c686c;
+            --accent: #d85f38;
+            --accent-strong: #a53e1c;
+            --line: rgba(31, 42, 46, 0.12);
+            --shadow: 0 18px 50px rgba(31, 42, 46, 0.14);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Georgia, 'Times New Roman', serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(216, 95, 56, 0.18), transparent 28%),
+                radial-gradient(circle at bottom right, rgba(31, 42, 46, 0.14), transparent 30%),
+                linear-gradient(135deg, #f7f2e8 0%, #ece5d7 52%, #efe7db 100%);
+        }
+
+        main {
+            width: min(1180px, calc(100vw - 32px));
+            margin: 24px auto;
+            display: grid;
+            grid-template-columns: minmax(0, 1.6fr) minmax(280px, 0.9fr);
+            gap: 20px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(16px);
+        }
+
+        .stage {
+            padding: 18px;
+            transition: transform 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+        }
+
+        .stage.is-drop-target {
+            transform: translateY(-2px);
+            box-shadow: 0 22px 58px rgba(216, 95, 56, 0.18);
+            border-color: rgba(216, 95, 56, 0.45);
+        }
+
+        .stage-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            align-items: baseline;
+            margin-bottom: 14px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: clamp(2rem, 4vw, 3.4rem);
+            line-height: 0.95;
+            font-weight: 600;
+        }
+
+        .subhead {
+            max-width: 28rem;
+            font-size: 0.98rem;
+            color: var(--muted);
+        }
+
+        .canvas-stack {
+            position: relative;
+            aspect-ratio: 16 / 9;
+        }
+
+        .canvas-stack canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            display: block;
+            border-radius: 18px;
+            background:
+                linear-gradient(180deg, rgba(31, 42, 46, 0.22), rgba(31, 42, 46, 0.55)),
+                repeating-linear-gradient(135deg, rgba(255,255,255,0.03), rgba(255,255,255,0.03) 12px, transparent 12px, transparent 24px),
+                #101516;
+        }
+
+        .canvas-stack canvas[hidden] {
+            display: none;
+        }
+
+        aside {
+            padding: 22px;
+            display: grid;
+            gap: 18px;
+            align-content: start;
+        }
+
+        .eyebrow {
+            font-size: 0.75rem;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: var(--muted);
+        }
+
+        .media-title {
+            font-size: 1.2rem;
+            min-height: 1.5em;
+        }
+
+        .status {
+            padding: 12px 14px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.55);
+            border: 1px solid rgba(31, 42, 46, 0.08);
+            color: var(--muted);
+            font-size: 0.95rem;
+        }
+
+        .controls {
+            display: grid;
+            gap: 14px;
+        }
+
+        .row {
+            display: grid;
+            gap: 8px;
+        }
+
+        .row.inline {
+            grid-template-columns: 1fr auto;
+            align-items: center;
+        }
+
+        button,
+        input[type="file"]::file-selector-button {
+            appearance: none;
+            border: 0;
+            background: linear-gradient(135deg, var(--accent), var(--accent-strong));
+            color: #fff7f0;
+            padding: 12px 16px;
+            border-radius: 999px;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--accent);
+        }
+
+        input[type="file"] {
+            width: 100%;
+            font: inherit;
+            color: var(--muted);
+        }
+
+        .note {
+            font-size: 0.9rem;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .stage-note {
+            margin-top: 12px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        @media (max-width: 900px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <main>
+        <section class="panel stage">
+            <div class="stage-header">
+                <div>
+                    <div class="eyebrow">Browser MVP</div>
+                    <h1>mpv in a canvas</h1>
+                </div>
+                <div class="subhead">Local file playback through `libmpv`, WebAssembly, a WebGL path with software fallback, and a browser audio bridge.</div>
+            </div>
+            <div class="canvas-stack">
+                <canvas id="mpv-canvas-gpu"></canvas>
+                <canvas id="mpv-canvas-sw" hidden></canvas>
+            </div>
+            <div class="stage-note">Drop a local media file onto the stage or use the file picker. Add `?gpu=0` to force software fallback.</div>
+        </section>
+
+        <aside class="panel">
+            <div>
+                <div class="eyebrow">Current Media</div>
+                <div class="media-title" id="media-title">No file loaded</div>
+            </div>
+
+            <div class="status">
+                <div id="status-text">Booting</div>
+                <div id="clock-text">--:-- / --:--</div>
+            </div>
+
+            <div class="controls">
+                <label class="row">
+                    <span class="eyebrow">Local File</span>
+                    <input id="file-input" type="file" accept="video/*,audio/*,.mkv,.mp4,.webm,.mp3,.flac,.wav">
+                </label>
+
+                <div class="row inline">
+                    <span class="eyebrow">Playback</span>
+                    <button id="play-pause" type="button">Play</button>
+                </div>
+
+                <label class="row">
+                    <span class="eyebrow">Seek</span>
+                    <input id="seek" type="range" min="0" max="1000" value="0">
+                </label>
+
+                <label class="row">
+                    <span class="eyebrow">Volume</span>
+                    <input id="volume" type="range" min="0" max="100" value="100">
+                </label>
+            </div>
+
+            <div class="note">
+                This page must be served with `Cross-Origin-Opener-Policy: same-origin` and
+                `Cross-Origin-Embedder-Policy: require-corp` so Emscripten pthreads can run.
+            </div>
+        </aside>
+    </main>
+
+    <script type="module" src="./mpv-browser.js"></script>
+</body>
+</html>

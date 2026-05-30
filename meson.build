@@ -1831,6 +1831,10 @@ if get_option('libmpv')
     meson.override_dependency('mpv', libmpv_dep)
 endif
 
+if emscripten and get_option('libmpv')
+    subdir('misc/emscripten')
+endif
+
 if get_option('cplayer')
     datadir = get_option('datadir')
 
