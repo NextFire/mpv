@@ -148,6 +148,7 @@ const AUDIO_SETUP_READY = 3;
 const AUDIO_SETUP_FAILED = 4;
 
 const EMPTY_DETAIL = Object.freeze({}) as EmptyDetail;
+const SUBTITLE_FONT_DIR = "/input/fonts";
 
 let nextPlayerId = 0;
 
@@ -408,6 +409,7 @@ export class MpvPlayer extends EventTarget {
             );
         }
 
+        this.configureFontDirectory();
         this.readyState = true;
         this.usingGpu = this.api().usesGpu();
         if (!this.usingGpu) this.context2d = this.softwareCanvasContext();
@@ -617,6 +619,59 @@ export class MpvPlayer extends EventTarget {
         }
 
         this.emitStatus(`Attached subtitles: ${name}`);
+        this.forceRender = true;
+        this.emitStateChange();
+        return this;
+    }
+
+    async addFont(source: LoadSource, options: MpvLoadOptions = {}): Promise<this> {
+        await this.initialize();
+
+        if (typeof source === "string") {
+            return this.addFontUrl(source, options);
+        }
+        if (isFile(source)) return this.addFontFile(source);
+        if (isBlob(source)) return this.addFontBlob(source, options.name);
+        if (source instanceof ArrayBuffer || isTypedArray(source)) {
+            return this.addFontBytes(source, options.name || "subtitle.ttf");
+        }
+
+        throw new TypeError("Unsupported source type for addFont()");
+    }
+
+    async addFontUrl(url: string, options: MpvLoadOptions = {}): Promise<this> {
+        const response = await fetch(url, options.fetchOptions);
+        if (!response.ok) {
+            throw new Error(
+                `Failed to fetch font: ${response.status} ${response.statusText}`,
+            );
+        }
+
+        const buffer = await response.arrayBuffer();
+        return this.addFontBytes(buffer, options.name || inferNameFromUrl(url));
+    }
+
+    async addFontBlob(blob: Blob, name = "subtitle.ttf"): Promise<this> {
+        if (isFile(blob)) return this.addFontFile(blob);
+        if (typeof File !== "undefined") {
+            return this.addFontFile(new File([blob], name, { type: blob.type }));
+        }
+        return this.addFontBytes(await blob.arrayBuffer(), name);
+    }
+
+    async addFontFile(file: File): Promise<this> {
+        const buffer = await file.arrayBuffer();
+        return this.addFontBytes(buffer, file.name || "subtitle.ttf");
+    }
+
+    async addFontBytes(
+        bytes: BinaryBufferSource,
+        name = "subtitle.ttf",
+    ): Promise<this> {
+        await this.initialize();
+
+        this.writeAuxiliaryFile("fonts", name, toUint8Array(bytes));
+        this.emitStatus(`Loaded subtitle font: ${name}`);
         this.forceRender = true;
         this.emitStateChange();
         return this;
@@ -967,6 +1022,23 @@ export class MpvPlayer extends EventTarget {
         if (status === this.lastStatus) return;
         this.lastStatus = status;
         this.dispatchEvent(buildEvent("statuschange", { status }));
+    }
+
+    private configureFontDirectory(): void {
+        const module = this.module;
+        if (!module) throw new Error("Mpv module is not loaded");
+
+        module.FS.mkdirTree(SUBTITLE_FONT_DIR);
+
+        const rc = this.api().setPropertyString(
+            "sub-fonts-dir",
+            SUBTITLE_FONT_DIR,
+        );
+        if (rc < 0) {
+            throw new Error(
+                `set sub-fonts-dir failed: ${rc} (${this.api().getLastErrorString() || "unknown"})`,
+            );
+        }
     }
 
     private emitStateChange(): MpvPlayerState {
