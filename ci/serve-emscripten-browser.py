@@ -25,7 +25,7 @@ def main() -> None:
     directory = Path(args.directory).resolve()
     handler = functools.partial(CoopCoepHandler, directory=str(directory))
     server = ThreadingHTTPServer((args.host, args.port), handler)
-    print(f"Serving {directory} at http://{args.host}:{args.port}")
+    print(f"Serving {directory} at http://{args.host}:{args.port}/demo")
     server.serve_forever()
 
 

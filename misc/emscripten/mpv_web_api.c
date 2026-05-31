@@ -416,6 +416,16 @@ EMSCRIPTEN_KEEPALIVE int mpv_web_loadfile(const char *path)
     return rc < 0 ? remember_error(rc) : 0;
 }
 
+EMSCRIPTEN_KEEPALIVE int mpv_web_sub_add(const char *path)
+{
+    if (!state.mpv || !path || !path[0])
+        return remember_error(MPV_ERROR_INVALID_PARAMETER);
+
+    const char *cmd[] = {"sub-add", path, "select", NULL};
+    int rc = mpv_command(state.mpv, cmd);
+    return rc < 0 ? remember_error(rc) : 0;
+}
+
 EMSCRIPTEN_KEEPALIVE int mpv_web_seek_absolute(double seconds)
 {
     if (!state.mpv)
@@ -444,6 +454,16 @@ EMSCRIPTEN_KEEPALIVE int mpv_web_set_property_double(const char *name, double va
         return remember_error(MPV_ERROR_INVALID_PARAMETER);
 
     int rc = mpv_set_property(state.mpv, name, MPV_FORMAT_DOUBLE, &value);
+    return rc < 0 ? remember_error(rc) : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE int mpv_web_set_property_string(const char *name,
+                                                     const char *value)
+{
+    if (!state.mpv || !name || !name[0] || !value)
+        return remember_error(MPV_ERROR_INVALID_PARAMETER);
+
+    int rc = mpv_set_property_string(state.mpv, name, value);
     return rc < 0 ? remember_error(rc) : 0;
 }
 
@@ -489,6 +509,15 @@ EMSCRIPTEN_KEEPALIVE const char *mpv_web_get_property_string(const char *name)
     snprintf(state.last_property_text, sizeof(state.last_property_text), "%s", value);
     mpv_free(value);
     return state.last_property_text;
+}
+
+EMSCRIPTEN_KEEPALIVE int mpv_web_command_string(const char *command)
+{
+    if (!state.mpv || !command || !command[0])
+        return remember_error(MPV_ERROR_INVALID_PARAMETER);
+
+    int rc = mpv_command_string(state.mpv, command);
+    return rc < 0 ? remember_error(rc) : 0;
 }
 
 EMSCRIPTEN_KEEPALIVE void mpv_web_resume_audio(void)

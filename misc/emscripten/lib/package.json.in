@@ -1,0 +1,7 @@
+{
+  "name": "mpv-wasm",
+  "version": "@PACKAGE_VERSION@",
+  "description": "Reusable browser mpv player powered by WebAssembly",
+  "license": "GPL-2.0-or-later",
+  "type": "module"
+}

@@ -200,10 +200,7 @@
                 </div>
                 <div class="subhead">Local file playback through `libmpv`, WebAssembly, a WebGL path with software fallback, and a browser audio bridge.</div>
             </div>
-            <div class="canvas-stack">
-                <canvas id="mpv-canvas-gpu"></canvas>
-                <canvas id="mpv-canvas-sw" hidden></canvas>
-            </div>
+            <div class="canvas-stack" id="player-root"></div>
             <div class="stage-note">Drop a local media file onto the stage or use the file picker. Add `?gpu=0` to force software fallback.</div>
         </section>
 
@@ -222,6 +219,11 @@
                 <label class="row">
                     <span class="eyebrow">Local File</span>
                     <input id="file-input" type="file" accept="video/*,audio/*,.mkv,.mp4,.webm,.mp3,.flac,.wav">
+                </label>
+
+                <label class="row">
+                    <span class="eyebrow">Subtitles</span>
+                    <input id="subtitle-input" type="file" accept=".srt,.ass,.ssa,.vtt,.sub,.sup,text/vtt,application/x-subrip">
                 </label>
 
                 <div class="row inline">
@@ -247,6 +249,6 @@
         </aside>
     </main>
 
-    <script type="module" src="./mpv-browser.js"></script>
+    <script type="module" src="./main.js"></script>
 </body>
 </html>
